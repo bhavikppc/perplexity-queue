@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perplexity Queue Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0066cc;
+            --secondary-color: #005cb8;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+        }
+
+        body {
+            width: 500px;
+            min-height: 400px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: #fff;
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .tabs-container {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            background-color: var(--light-bg);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+            background-color: rgba(0, 102, 204, 0.05);
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background-color: white;
+        }
+
+        .content-area {
+            padding: 16px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Queue Tab Styles */
+        .queue-item {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .queue-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .queue-item-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .queue-item-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .queue-item-preview {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .queue-item-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-edit {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-delete {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+
+        .btn-move-up {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px 8px;
+        }
+
+        .btn-move-up:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-move-down {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px 8px;
+        }
+
+        .btn-move-down:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="color"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="color"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary {
+            background-color: var(--light-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e9ecef;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background-color: #cfe2ff;
+            border-color: var(--primary-color);
+            color: #084298;
+        }
+
+        .alert-success {
+            background-color: #d1e7dd;
+            border-color: var(--success-color);
+            color: #0f5132;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: var(--danger-color);
+            color: #842029;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: var(--warning-color);
+            color: #664d03;
+        }
+
+        /* Queue Counter */
+        .queue-counter {
+            background-color: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .queue-counter-number {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .queue-counter-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* File Input Styling */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 10px 16px;
+            background-color: var(--light-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .file-input-label:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(0, 102, 204, 0.05);
+            color: var(--primary-color);
+        }
+
+        /* Settings List */
+        .settings-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-label {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .settings-item-value {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Scrollbar Styling */
+        .content-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content-area::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .content-area::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Priority Badge */
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .priority-high {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .priority-medium {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+
+        .priority-low {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                width: 100vw;
+            }
+
+            .content-area {
+                max-height: calc(100vh - 120px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Perplexity Queue Manager</h1>
+    </div>
+
+    <div class="tabs-container">
+        <button class="tab-button active" data-tab="queue">Queue</button>
+        <button class="tab-button" data-tab="add-prompt">Add Prompt</button>
+        <button class="tab-button" data-tab="import-export">Import/Export</button>
+        <button class="tab-button" data-tab="settings">Settings</button>
+    </div>
+
+    <div class="content-area">
+        <!-- Queue Tab -->
+        <div class="tab-content active" id="queue-tab">
+            <div class="queue-counter">
+                <div class="queue-counter-number" id="queue-count">0</div>
+                <div class="queue-counter-label">prompts in queue</div>
+            </div>
+
+            <div id="queue-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>Your queue is empty</p>
+                    <p style="font-size: 12px; margin-top: 8px;">Add prompts to get started</p>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 16px;">
+                <button class="btn btn-secondary" id="clear-queue-btn">Clear Queue</button>
+                <button class="btn btn-primary" id="process-queue-btn">Process Queue</button>
+            </div>
+        </div>
+
+        <!-- Add Prompt Tab -->
+        <div class="tab-content" id="add-prompt-tab">
+            <form id="add-prompt-form">
+                <div class="form-group">
+                    <label for="prompt-title">Prompt Title *</label>
+                    <input type="text" id="prompt-title" name="title" placeholder="e.g., Python Tutorial" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="prompt-text">Prompt Text *</label>
+                    <textarea id="prompt-text" name="text" placeholder="Enter your prompt here..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="prompt-priority">Priority</label>
+                    <select id="prompt-priority" name="priority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="prompt-auto-process" name="autoProcess">
+                    <label for="prompt-auto-process" style="margin-bottom: 0; margin-left: 6px;">Auto-process when ready</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="prompt-save-response" name="saveResponse">
+                    <label for="prompt-save-response" style="margin-bottom: 0; margin-left: 6px;">Save response</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Add to Queue</button>
+                <button type="reset" class="btn btn-secondary" style="margin-top: 8px;">Clear Form</button>
+            </form>
+        </div>
+
+        <!-- Import/Export Tab -->
+        <div class="tab-content" id="import-export-tab">
+            <div style="margin-bottom: 24px;">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Export Queue</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Download your current queue as JSON</p>
+                <button class="btn btn-primary" id="export-queue-btn">📥 Export Queue</button>
+                <button class="btn btn-secondary" style="margin-top: 8px;" id="export-queue-json-btn">📋 Copy as JSON</button>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+            <div>
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Import Queue</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">Upload a JSON file to import prompts</p>
+
+                <div class="file-input-wrapper">
+                    <input type="file" id="import-file-input" name="importFile" accept=".json" />
+                    <label for="import-file-input" class="file-input-label">
+                        📂 Click to select JSON file or drag and drop
+                    </label>
+                </div>
+
+                <div class="checkbox-group" style="margin-top: 12px;">
+                    <input type="checkbox" id="import-merge" name="merge">
+                    <label for="import-merge" style="margin-bottom: 0; margin-left: 6px;">Merge with existing queue</label>
+                </div>
+
+                <button class="btn btn-success" style="margin-top: 12px;" id="import-queue-btn">✅ Import Queue</button>
+            </div>
+
+            <div class="alert alert-info" style="margin-top: 16px;">
+                <strong>Tip:</strong> Your queue data is stored locally in your browser and can be backed up at any time.
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-content" id="settings-tab">
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Appearance</h3>
+
+                <div class="settings-item">
+                    <div class="settings-item-label">Dark Mode</div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark-mode-toggle" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Behavior</h3>
+
+                <div class="form-group">
+                    <label for="auto-process-delay">Auto-process Delay (seconds)</label>
+                    <input type="number" id="auto-process-delay" name="delay" min="0" max="300" value="5">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notification-enabled" name="notification" checked>
+                    <label for="notification-enabled" style="margin-bottom: 0; margin-left: 6px;">Enable notifications</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="auto-clear-history" name="autoClear">
+                    <label for="auto-clear-history" style="margin-bottom: 0; margin-left: 6px;">Auto-clear processed items</label>
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">API Settings</h3>
+
+                <div class="form-group">
+                    <label for="api-key">API Key</label>
+                    <input type="text" id="api-key" name="apiKey" placeholder="Enter your API key" type="password">
+                </div>
+
+                <div class="form-group">
+                    <label for="api-endpoint">API Endpoint</label>
+                    <input type="text" id="api-endpoint" name="endpoint" placeholder="https://api.perplexity.com" value="https://api.perplexity.com">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="api-verify-ssl" name="verifySsl" checked>
+                    <label for="api-verify-ssl" style="margin-bottom: 0; margin-left: 6px;">Verify SSL certificate</label>
+                </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="save-settings-btn">💾 Save Settings</button>
+                <button class="btn btn-secondary" id="reset-settings-btn">🔄 Reset to Defaults</button>
+            </div>
+
+            <div class="alert alert-success" style="margin-top: 16px; display: none;" id="settings-success-alert">
+                ✓ Settings saved successfully
+            </div>
+
+            <div class="alert alert-danger" style="margin-top: 16px; display: none;" id="settings-error-alert">
+                ✗ Error saving settings
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
