@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Queue Item Schema",
+  "description": "JSON schema definition for queue items in the Perplexity Queue system",
+  "type": "object",
+  "required": [
+    "id",
+    "status",
+    "createdAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the queue item",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "description": "Current status of the queue item",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "priority": {
+      "type": "integer",
+      "description": "Priority level of the queue item (higher number = higher priority)",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 50
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the queue item was created"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the queue item was last updated"
+    },
+    "startedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when processing started, null if not yet started"
+    },
+    "completedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when processing completed, null if not yet completed"
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of queue item/job",
+      "minLength": 1
+    },
+    "payload": {
+      "type": "object",
+      "description": "The data/payload for the queue item",
+      "additionalProperties": true
+    },
+    "result": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Result data after processing, null if not yet processed",
+      "additionalProperties": true
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Error information if processing failed",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional error details",
+          "additionalProperties": true
+        }
+      }
+    },
+    "retryCount": {
+      "type": "integer",
+      "description": "Number of times this item has been retried",
+      "minimum": 0,
+      "default": 0
+    },
+    "maxRetries": {
+      "type": "integer",
+      "description": "Maximum number of retries allowed",
+      "minimum": 0,
+      "default": 3
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Timeout in milliseconds for processing this item",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata associated with the queue item",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
